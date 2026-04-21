@@ -1,0 +1,31 @@
+# =========================
+# Environment
+# =========================
+.venv/
+
+# =========================
+# OS / System Files
+# =========================
+desktop.ini
+
+# =========================
+# Logs and Generated Outputs
+# Keep generated logs out of project root
+# =========================
+log/
+logging/
+
+# =========================
+# Documents and Attachments
+# =========================
+docs/
+*.pdf
+*.txt
+Requirement.md
+
+# =========================
+# Explicit Keep Rules
+# =========================
+!README.md
+!**/README.md
+!sample_input.txt
