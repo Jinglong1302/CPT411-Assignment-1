@@ -1,183 +1,233 @@
-from dataclasses import dataclass
-
-from src.core.char_classes import is_digit, is_letter
-from src.core.states import Category, MONTHS, State, UNITS_AND_SCALES
-
-
-@dataclass
-class DFAContext:
-    word_buffer: str = ""
-    word_kind: str = ""  # month | unit | unknown
-    number_buffer: str = ""  # digits collected for the integer token (day candidate)
-    year_count: int = 0
-    year_value: int = 0
+from src.core.states import Category
 
 
 class DFAEngine:
-    # configure acceptable year range
-    YEAR_MIN = 1000
-    YEAR_MAX = 2100
+    # Core control states.
+    START = "START"
+    INT_1 = "INT_1"
+    INT_2 = "INT_2"
+    INT_3PLUS = "INT_3PLUS"
+    PERCENT = "PERCENT"
+    ORD_S = "ORD_S"
+    ORD_N = "ORD_N"
+    ORD_R = "ORD_R"
+    ORD_T = "ORD_T"
+    ORD_DONE = "ORD_DONE"
+
+    AFTER_INT_SPACE = "AFTER_INT_SPACE"
+    UNIT_G = "UNIT_G"
+    UNIT_K = "UNIT_K"
+    UNIT_KG = "UNIT_KG"
+    UNIT_M = "UNIT_M"
+    UNIT_ML = "UNIT_ML"
+    UNIT_C = "UNIT_C"
+    UNIT_CM = "UNIT_CM"
+    UNIT_L = "UNIT_L"
+
+    DATE_SLASH_1 = "DATE_SLASH_1"
+    DATE_MONTH_1 = "DATE_MONTH_1"
+    DATE_MONTH_2 = "DATE_MONTH_2"
+    DATE_SLASH_2 = "DATE_SLASH_2"
+    DATE_YEAR_1 = "DATE_YEAR_1"
+    DATE_YEAR_2 = "DATE_YEAR_2"
+    DATE_YEAR_3 = "DATE_YEAR_3"
+    DATE_YEAR_4 = "DATE_YEAR_4"
+
+    TRAP = "TRAP"
 
     def __init__(self) -> None:
         self.reset()
 
     def reset(self) -> None:
-        self.state = State.START
-        self.ctx = DFAContext()
+        self.state = self.START
 
-    def step(self, ch: str) -> State:
+    def step(self, ch: str) -> str:
+        if not ch:
+            self.state = self.TRAP
+            return self.state
+
         s = self.state
 
-        if s == State.START:
-            if is_digit(ch):
-                self.ctx.number_buffer = ch
-                self.state = State.INT
+        if s == self.START:
+            if ch.isdigit():
+                self.state = self.INT_1
             else:
-                self.state = State.TRAP
+                self.state = self.TRAP
             return self.state
 
-        if s == State.INT:
-            if is_digit(ch):
-                # collect digits for day/current integer token
-                self.ctx.number_buffer += ch
-                self.state = State.INT
+        if s == self.INT_1:
+            if ch.isdigit():
+                self.state = self.INT_2
             elif ch == "%":
-                self.state = State.PERCENT
+                self.state = self.PERCENT
             elif ch == "s":
-                self.state = State.ORD_S
+                self.state = self.ORD_S
             elif ch == "n":
-                self.state = State.ORD_N
+                self.state = self.ORD_N
             elif ch == "r":
-                self.state = State.ORD_R
+                self.state = self.ORD_R
             elif ch == "t":
-                self.state = State.ORD_T
+                self.state = self.ORD_T
             elif ch == " ":
-                self.state = State.AFTER_INT_SPACE
+                self.state = self.AFTER_INT_SPACE
+            elif ch == "/":
+                self.state = self.DATE_SLASH_1
             else:
-                self.state = State.TRAP
+                self.state = self.TRAP
             return self.state
 
-        if s == State.PERCENT:
-            self.state = State.TRAP
-            return self.state
-
-        if s == State.ORD_S:
-            self.state = State.ORD_DONE if ch == "t" else State.TRAP
-            return self.state
-
-        if s == State.ORD_N:
-            self.state = State.ORD_DONE if ch == "d" else State.TRAP
-            return self.state
-
-        if s == State.ORD_R:
-            self.state = State.ORD_DONE if ch == "d" else State.TRAP
-            return self.state
-
-        if s == State.ORD_T:
-            self.state = State.ORD_DONE if ch == "h" else State.TRAP
-            return self.state
-
-        if s == State.ORD_DONE:
-            self.state = State.TRAP
-            return self.state
-
-        if s == State.AFTER_INT_SPACE:
-            if is_letter(ch):
-                self.ctx.word_buffer = ch.lower()
-                self.state = State.WORD
-            else:
-                self.state = State.TRAP
-            return self.state
-
-        if s == State.WORD:
-            if is_letter(ch):
-                self.ctx.word_buffer += ch.lower()
+        if s == self.INT_2:
+            if ch.isdigit():
+                self.state = self.INT_3PLUS
+            elif ch == "%":
+                self.state = self.PERCENT
+            elif ch == "s":
+                self.state = self.ORD_S
+            elif ch == "n":
+                self.state = self.ORD_N
+            elif ch == "r":
+                self.state = self.ORD_R
+            elif ch == "t":
+                self.state = self.ORD_T
             elif ch == " ":
-                self._finalize_word_kind()
-                self.state = State.AFTER_WORD
+                self.state = self.AFTER_INT_SPACE
+            elif ch == "/":
+                self.state = self.DATE_SLASH_1
             else:
-                self.state = State.TRAP
+                self.state = self.TRAP
             return self.state
 
-        if s == State.AFTER_WORD:
-            # Only start year parsing if previous word classified as month,
-            # and the number (day) we collected is 1-2 digits long (date day must be 1 or 2 digits).
-            if self.ctx.word_kind == "month" and is_digit(ch) and 1 <= len(self.ctx.number_buffer) <= 2:
-                # initialize year parsing with first digit
-                self.ctx.year_count = 1
-                self.ctx.year_value = int(ch)
-                self.state = State.DATE_YEAR
+        if s == self.INT_3PLUS:
+            if ch.isdigit():
+                self.state = self.INT_3PLUS
+            elif ch == "%":
+                self.state = self.PERCENT
+            elif ch == "s":
+                self.state = self.ORD_S
+            elif ch == "n":
+                self.state = self.ORD_N
+            elif ch == "r":
+                self.state = self.ORD_R
+            elif ch == "t":
+                self.state = self.ORD_T
+            elif ch == " ":
+                self.state = self.AFTER_INT_SPACE
             else:
-                self.state = State.TRAP
+                self.state = self.TRAP
             return self.state
 
-        if s == State.DATE_YEAR:
-            if is_digit(ch):
-                # Allow exactly 4 digits for year; a 5th digit -> TRAP
-                if self.ctx.year_count < 4:
-                    self.ctx.year_count += 1
-                    self.ctx.year_value = self.ctx.year_value * 10 + int(ch)
-                    self.state = State.DATE_YEAR
-                else:
-                    self.state = State.TRAP
-            else:
-                self.state = State.TRAP
+        if s == self.PERCENT:
+            self.state = self.TRAP
             return self.state
 
-        self.state = State.TRAP
+        if s == self.ORD_S:
+            self.state = self.ORD_DONE if ch == "t" else self.TRAP
+            return self.state
+
+        if s == self.ORD_N:
+            self.state = self.ORD_DONE if ch == "d" else self.TRAP
+            return self.state
+
+        if s == self.ORD_R:
+            self.state = self.ORD_DONE if ch == "d" else self.TRAP
+            return self.state
+
+        if s == self.ORD_T:
+            self.state = self.ORD_DONE if ch == "h" else self.TRAP
+            return self.state
+
+        if s == self.ORD_DONE:
+            self.state = self.TRAP
+            return self.state
+
+        if s == self.AFTER_INT_SPACE:
+            if ch == "g":
+                self.state = self.UNIT_G
+            elif ch == "k":
+                self.state = self.UNIT_K
+            elif ch == "m":
+                self.state = self.UNIT_M
+            elif ch == "c":
+                self.state = self.UNIT_C
+            elif ch == "L":
+                self.state = self.UNIT_L
+            else:
+                self.state = self.TRAP
+            return self.state
+
+        if s == self.UNIT_K:
+            self.state = self.UNIT_KG if ch == "g" else self.TRAP
+            return self.state
+
+        if s == self.UNIT_M:
+            self.state = self.UNIT_ML if ch == "l" else self.TRAP
+            return self.state
+
+        if s == self.UNIT_C:
+            self.state = self.UNIT_CM if ch == "m" else self.TRAP
+            return self.state
+
+        if s in {self.UNIT_G, self.UNIT_KG, self.UNIT_ML, self.UNIT_L, self.UNIT_CM}:
+            self.state = self.TRAP
+            return self.state
+
+        if s == self.DATE_SLASH_1:
+            self.state = self.DATE_MONTH_1 if ch.isdigit() else self.TRAP
+            return self.state
+
+        if s == self.DATE_MONTH_1:
+            if ch.isdigit():
+                self.state = self.DATE_MONTH_2
+            elif ch == "/":
+                self.state = self.DATE_SLASH_2
+            else:
+                self.state = self.TRAP
+            return self.state
+
+        if s == self.DATE_MONTH_2:
+            self.state = self.DATE_SLASH_2 if ch == "/" else self.TRAP
+            return self.state
+
+        if s == self.DATE_SLASH_2:
+            self.state = self.DATE_YEAR_1 if ch.isdigit() else self.TRAP
+            return self.state
+
+        if s == self.DATE_YEAR_1:
+            self.state = self.DATE_YEAR_2 if ch.isdigit() else self.TRAP
+            return self.state
+
+        if s == self.DATE_YEAR_2:
+            self.state = self.DATE_YEAR_3 if ch.isdigit() else self.TRAP
+            return self.state
+
+        if s == self.DATE_YEAR_3:
+            self.state = self.DATE_YEAR_4 if ch.isdigit() else self.TRAP
+            return self.state
+
+        if s == self.DATE_YEAR_4:
+            self.state = self.TRAP
+            return self.state
+
+        self.state = self.TRAP
         return self.state
 
-    def _finalize_word_kind(self) -> None:
-        word = self.ctx.word_buffer
-        if word in MONTHS:
-            self.ctx.word_kind = "month"
-        elif word in UNITS_AND_SCALES:
-            self.ctx.word_kind = "unit"
-        else:
-            self.ctx.word_kind = "unknown"
+    def is_accepting(self, state: str | None = None) -> bool:
+        return self.accepted_category(state) is not None
 
-    def is_accepting(self, state: State | None = None) -> bool:
+    def accepted_category(self, state: str | None = None) -> Category | None:
         s = state or self.state
-        return s in {State.INT, State.PERCENT, State.ORD_DONE, State.WORD, State.DATE_YEAR}
-
-    def accepted_category(self, state: State | None = None) -> Category | None:
-        s = state or self.state
-        if s == State.PERCENT:
-            return Category.PERCENTAGE
-        if s == State.ORD_DONE:
-            return Category.ORDINAL
-        if s == State.DATE_YEAR:
-            # require exactly 4 year digits and perform day/year validation
-            if self.ctx.year_count != 4:
-                return None
-            try:
-                day = int(self.ctx.number_buffer)
-            except Exception:
-                return None
-            year = self.ctx.year_value
-            if not (self.YEAR_MIN <= year <= self.YEAR_MAX):
-                return None
-            # month name is in ctx.word_buffer (lowercased)
-            max_day = self._days_in_month(self.ctx.word_buffer, year)
-            if 1 <= day <= max_day:
-                return Category.DATE
-            return None
-        if s == State.WORD and self.ctx.word_buffer in UNITS_AND_SCALES:
-            return Category.QUANTITY_WITH_UNIT
-        if s == State.INT:
+        if s in {self.INT_1, self.INT_2, self.INT_3PLUS}:
             return Category.EXACT_QUANTITY
+        if s == self.PERCENT:
+            return Category.PERCENTAGE
+        if s == self.ORD_DONE:
+            return Category.ORDINAL
+        if s in {self.UNIT_G, self.UNIT_KG, self.UNIT_ML, self.UNIT_L, self.UNIT_CM}:
+            return Category.QUANTITY_WITH_UNIT
+        if s == self.DATE_YEAR_4:
+            return Category.DATE
         return None
 
-    def _days_in_month(self, month_name: str, year: int) -> int:
-        m = (month_name or "").lower()
-        if m in {"january", "march", "may", "july", "august", "october", "december"}:
-            return 31
-        if m in {"april", "june", "september", "november"}:
-            return 30
-        if m == "february":
-            # leap year
-            if (year % 4 == 0) and (year % 100 != 0 or year % 400 == 0):
-                return 29
-            return 28
-        # fallback
-        return 31
+    def is_trap(self, state: str | None = None) -> bool:
+        s = state or self.state
+        return s == self.TRAP

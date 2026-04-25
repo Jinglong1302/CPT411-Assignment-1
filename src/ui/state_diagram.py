@@ -3,31 +3,83 @@ from __future__ import annotations
 from typing import Iterable
 
 from src.app.models import TransitionStep
-from src.core.states import State
+from src.core.dfa_engine import DFAEngine
 
+
+STATE_NAMES: list[str] = [
+    DFAEngine.START,
+    DFAEngine.INT_1,
+    DFAEngine.INT_2,
+    DFAEngine.INT_3PLUS,
+    DFAEngine.PERCENT,
+    DFAEngine.ORD_S,
+    DFAEngine.ORD_N,
+    DFAEngine.ORD_R,
+    DFAEngine.ORD_T,
+    DFAEngine.ORD_DONE,
+    DFAEngine.AFTER_INT_SPACE,
+    DFAEngine.UNIT_G,
+    DFAEngine.UNIT_K,
+    DFAEngine.UNIT_KG,
+    DFAEngine.UNIT_M,
+    DFAEngine.UNIT_ML,
+    DFAEngine.UNIT_C,
+    DFAEngine.UNIT_CM,
+    DFAEngine.UNIT_L,
+    DFAEngine.DATE_SLASH_1,
+    DFAEngine.DATE_MONTH_1,
+    DFAEngine.DATE_MONTH_2,
+    DFAEngine.DATE_SLASH_2,
+    DFAEngine.DATE_YEAR_1,
+    DFAEngine.DATE_YEAR_2,
+    DFAEngine.DATE_YEAR_3,
+    DFAEngine.DATE_YEAR_4,
+    DFAEngine.TRAP,
+]
 
 ACCEPTING_STATES = {
-    State.INT.name,
-    State.PERCENT.name,
-    State.ORD_DONE.name,
-    State.WORD.name,
-    State.DATE_YEAR.name,
+    DFAEngine.INT_1,
+    DFAEngine.INT_2,
+    DFAEngine.INT_3PLUS,
+    DFAEngine.PERCENT,
+    DFAEngine.ORD_DONE,
+    DFAEngine.UNIT_G,
+    DFAEngine.UNIT_KG,
+    DFAEngine.UNIT_ML,
+    DFAEngine.UNIT_L,
+    DFAEngine.UNIT_CM,
+    DFAEngine.DATE_YEAR_4,
 }
 
 STATE_POSITIONS: dict[str, tuple[int, int]] = {
-    State.START.name: (-780, 20),
-    State.INT.name: (-520, 20),
-    State.PERCENT.name: (-250, -220),
-    State.ORD_S.name: (-250, -60),
-    State.ORD_N.name: (-250, 70),
-    State.ORD_R.name: (-250, 200),
-    State.ORD_T.name: (-250, 330),
-    State.ORD_DONE.name: (40, 120),
-    State.AFTER_INT_SPACE.name: (-250, 470),
-    State.WORD.name: (70, 470),
-    State.AFTER_WORD.name: (390, 470),
-    State.DATE_YEAR.name: (700, 470),
-    State.TRAP.name: (320, -220),
+    DFAEngine.START: (-980, 40),
+    DFAEngine.INT_1: (-780, 40),
+    DFAEngine.INT_2: (-590, 40),
+    DFAEngine.INT_3PLUS: (-400, 40),
+    DFAEngine.PERCENT: (-770, -220),
+    DFAEngine.ORD_S: (-770, -70),
+    DFAEngine.ORD_N: (-770, 80),
+    DFAEngine.ORD_R: (-770, 230),
+    DFAEngine.ORD_T: (-770, 380),
+    DFAEngine.ORD_DONE: (-520, 180),
+    DFAEngine.AFTER_INT_SPACE: (-400, 220),
+    DFAEngine.UNIT_G: (-150, 260),
+    DFAEngine.UNIT_K: (-320, 360),
+    DFAEngine.UNIT_KG: (-80, 360),
+    DFAEngine.UNIT_M: (120, 260),
+    DFAEngine.UNIT_ML: (320, 260),
+    DFAEngine.UNIT_C: (120, 410),
+    DFAEngine.UNIT_CM: (320, 410),
+    DFAEngine.UNIT_L: (520, 260),
+    DFAEngine.DATE_SLASH_1: (-150, -150),
+    DFAEngine.DATE_MONTH_1: (80, -150),
+    DFAEngine.DATE_MONTH_2: (300, -150),
+    DFAEngine.DATE_SLASH_2: (520, -150),
+    DFAEngine.DATE_YEAR_1: (750, -150),
+    DFAEngine.DATE_YEAR_2: (930, -150),
+    DFAEngine.DATE_YEAR_3: (1110, -150),
+    DFAEngine.DATE_YEAR_4: (1290, -150),
+    DFAEngine.TRAP: (650, 380),
 }
 
 
@@ -36,7 +88,7 @@ def _node_color(state_name: str, current_state_name: str | None, visited: set[st
         return "#ffcc80"
     if state_name in visited:
         return "#bbdefb"
-    if state_name == State.TRAP.name:
+    if state_name == DFAEngine.TRAP:
         return "#ffcdd2"
     return "#e8f5e9"
 
@@ -59,44 +111,54 @@ def _edge_color(pair: tuple[str, str], traversed: set[tuple[str, str]]) -> str:
 
 def _base_edges() -> list[tuple[str, str, str]]:
     return [
-        (State.START.name, State.INT.name, "digit"),
-        (State.INT.name, State.INT.name, "digit"),
-        (State.INT.name, State.PERCENT.name, "%"),
-        (State.INT.name, State.ORD_S.name, "s"),
-        (State.INT.name, State.ORD_N.name, "n"),
-        (State.INT.name, State.ORD_R.name, "r"),
-        (State.INT.name, State.ORD_T.name, "t"),
-        (State.INT.name, State.AFTER_INT_SPACE.name, "space"),
-        (State.ORD_S.name, State.ORD_DONE.name, "t"),
-        (State.ORD_N.name, State.ORD_DONE.name, "d"),
-        (State.ORD_R.name, State.ORD_DONE.name, "d"),
-        (State.ORD_T.name, State.ORD_DONE.name, "h"),
-        (State.AFTER_INT_SPACE.name, State.WORD.name, "letter"),
-        (State.WORD.name, State.WORD.name, "letter"),
-        (State.WORD.name, State.AFTER_WORD.name, "space"),
-        # Guarded transition: only when previous word is a month and the day length is 1-2 digits
-        (State.AFTER_WORD.name, State.DATE_YEAR.name, "digit (if month && day len 1-2)"),
-        # Year digits: allow up to 4 digits; 5th digit -> TRAP
-        (State.DATE_YEAR.name, State.DATE_YEAR.name, "digit (year, max 4)") ,
+        (DFAEngine.START, DFAEngine.INT_1, "digit"),
+        (DFAEngine.INT_1, DFAEngine.INT_2, "digit"),
+        (DFAEngine.INT_2, DFAEngine.INT_3PLUS, "digit"),
+        (DFAEngine.INT_1, DFAEngine.PERCENT, "%"),
+        (DFAEngine.INT_2, DFAEngine.PERCENT, "%"),
+        (DFAEngine.INT_3PLUS, DFAEngine.PERCENT, "%"),
+        (DFAEngine.INT_1, DFAEngine.ORD_S, "s"),
+        (DFAEngine.INT_1, DFAEngine.ORD_N, "n"),
+        (DFAEngine.INT_1, DFAEngine.ORD_R, "r"),
+        (DFAEngine.INT_1, DFAEngine.ORD_T, "t"),
+        (DFAEngine.INT_2, DFAEngine.ORD_S, "s"),
+        (DFAEngine.INT_2, DFAEngine.ORD_N, "n"),
+        (DFAEngine.INT_2, DFAEngine.ORD_R, "r"),
+        (DFAEngine.INT_2, DFAEngine.ORD_T, "t"),
+        (DFAEngine.INT_3PLUS, DFAEngine.ORD_S, "s"),
+        (DFAEngine.INT_3PLUS, DFAEngine.ORD_N, "n"),
+        (DFAEngine.INT_3PLUS, DFAEngine.ORD_R, "r"),
+        (DFAEngine.INT_3PLUS, DFAEngine.ORD_T, "t"),
+        (DFAEngine.INT_1, DFAEngine.AFTER_INT_SPACE, "space"),
+        (DFAEngine.INT_2, DFAEngine.AFTER_INT_SPACE, "space"),
+        (DFAEngine.INT_3PLUS, DFAEngine.AFTER_INT_SPACE, "space"),
+        (DFAEngine.ORD_S, DFAEngine.ORD_DONE, "t"),
+        (DFAEngine.ORD_N, DFAEngine.ORD_DONE, "d"),
+        (DFAEngine.ORD_R, DFAEngine.ORD_DONE, "d"),
+        (DFAEngine.ORD_T, DFAEngine.ORD_DONE, "h"),
+        (DFAEngine.AFTER_INT_SPACE, DFAEngine.UNIT_G, "g"),
+        (DFAEngine.AFTER_INT_SPACE, DFAEngine.UNIT_K, "k"),
+        (DFAEngine.UNIT_K, DFAEngine.UNIT_KG, "g"),
+        (DFAEngine.AFTER_INT_SPACE, DFAEngine.UNIT_M, "m"),
+        (DFAEngine.UNIT_M, DFAEngine.UNIT_ML, "l"),
+        (DFAEngine.AFTER_INT_SPACE, DFAEngine.UNIT_C, "c"),
+        (DFAEngine.UNIT_C, DFAEngine.UNIT_CM, "m"),
+        (DFAEngine.AFTER_INT_SPACE, DFAEngine.UNIT_L, "L"),
+        (DFAEngine.INT_1, DFAEngine.DATE_SLASH_1, "/"),
+        (DFAEngine.DATE_SLASH_1, DFAEngine.DATE_MONTH_1, "digit"),
+        (DFAEngine.DATE_MONTH_1, DFAEngine.DATE_MONTH_2, "digit"),
+        (DFAEngine.DATE_MONTH_1, DFAEngine.DATE_SLASH_2, "/"),
+        (DFAEngine.DATE_MONTH_2, DFAEngine.DATE_SLASH_2, "/"),
+        (DFAEngine.DATE_SLASH_2, DFAEngine.DATE_YEAR_1, "digit"),
+        (DFAEngine.DATE_YEAR_1, DFAEngine.DATE_YEAR_2, "digit"),
+        (DFAEngine.DATE_YEAR_2, DFAEngine.DATE_YEAR_3, "digit"),
+        (DFAEngine.DATE_YEAR_3, DFAEngine.DATE_YEAR_4, "digit"),
     ]
 
 
 def _trap_hint_sources() -> list[str]:
     # These are representative invalid-input paths that can move to TRAP.
-    return [
-        State.START.name,
-        State.INT.name,
-        State.PERCENT.name,
-        State.ORD_S.name,
-        State.ORD_N.name,
-        State.ORD_R.name,
-        State.ORD_T.name,
-        State.ORD_DONE.name,
-        State.AFTER_INT_SPACE.name,
-        State.WORD.name,
-        State.AFTER_WORD.name,
-        State.DATE_YEAR.name,
-    ]
+    return [state for state in STATE_NAMES if state != DFAEngine.TRAP]
 
 
 def render_state_diagram_html(
@@ -122,9 +184,9 @@ def render_state_diagram_html(
     trace_list = list(trace)
     step_prefix = trace_list[:current_step]
 
-    visited_states: set[str] = {State.START.name}
+    visited_states: set[str] = {DFAEngine.START}
     traversed_pairs: set[tuple[str, str]] = set()
-    current_state = State.START.name
+    current_state = DFAEngine.START
 
     for step in step_prefix:
         visited_states.add(step.to_state)
@@ -170,27 +232,33 @@ def render_state_diagram_html(
             font={"size": 1, "color": "rgba(0,0,0,0)"},
         )
 
-    for state in State:
-        pos_x, pos_y = STATE_POSITIONS[state.name]
-        # add an explanatory tooltip for DATE_YEAR describing the DFA-level validation
-        title_text = f"State: {state.name}"
-        if state.name == State.DATE_YEAR.name:
-            title_text += (
-                "\nAccepts only if: year has exactly 4 digits, year within allowed range,"
-                " and day is within the month's valid range (leap years supported)."
-            )
+    for state_name in STATE_NAMES:
+        pos_x, pos_y = STATE_POSITIONS[state_name]
+        title_text = f"State: {state_name}"
+        if state_name == DFAEngine.DATE_YEAR_4:
+            title_text += "\nAccepts only if the year has exactly 4 digits."
+        elif state_name in {
+            DFAEngine.DATE_SLASH_1,
+            DFAEngine.DATE_MONTH_1,
+            DFAEngine.DATE_MONTH_2,
+            DFAEngine.DATE_SLASH_2,
+            DFAEngine.DATE_YEAR_1,
+            DFAEngine.DATE_YEAR_2,
+            DFAEngine.DATE_YEAR_3,
+        }:
+            title_text += "\nPart of the DD/MM/YYYY path."
         network.add_node(
-            state.name,
-            label=state.name,
-            color=_node_color(state.name, current_state, visited_states),
-            shape=_node_shape(state.name),
-            borderWidth=_node_border_width(state.name, current_state),
+            state_name,
+            label=state_name,
+            color=_node_color(state_name, current_state, visited_states),
+            shape=_node_shape(state_name),
+            borderWidth=_node_border_width(state_name, current_state),
             title=title_text,
             x=pos_x,
             y=pos_y,
             physics=False,
             fixed={"x": True, "y": True},
-            size=24 if state.name in ACCEPTING_STATES else 20,
+            size=24 if state_name in ACCEPTING_STATES else 20,
         )
 
     for source, target, label in _base_edges():
@@ -208,7 +276,7 @@ def render_state_diagram_html(
     for source in _trap_hint_sources():
         network.add_edge(
             source,
-            State.TRAP.name,
+            DFAEngine.TRAP,
             label="invalid",
             color="#b0bec5",
             width=1,
@@ -220,7 +288,7 @@ def render_state_diagram_html(
     # Show trap transitions encountered in current trace even though they are input-specific.
     for step in step_prefix:
         pair = (step.from_state, step.to_state)
-        if pair[1] == State.TRAP.name:
+        if pair[1] == DFAEngine.TRAP:
             network.add_edge(
                 pair[0],
                 pair[1],

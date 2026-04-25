@@ -1,7 +1,6 @@
 from src.app.models import MatchResult, TransitionStep
 from src.core.char_classes import is_boundary, is_digit
 from src.core.dfa_engine import DFAEngine
-from src.core.states import State
 
 
 class StreamingMatcher:
@@ -13,7 +12,7 @@ class StreamingMatcher:
         i = 0
 
         while i < len(text):
-            if not is_digit(text[i]) or (i > 0 and not is_boundary(text[i - 1])):
+            if i > 0 and not is_boundary(text[i - 1]):
                 i += 1
                 continue
 
@@ -43,12 +42,12 @@ class StreamingMatcher:
                 TransitionStep(
                     index=pos,
                     char=ch,
-                    from_state=prev_state.name,
-                    to_state=next_state.name,
+                    from_state=self._state_name(prev_state),
+                    to_state=self._state_name(next_state),
                 )
             )
 
-            if next_state == State.TRAP:
+            if self.engine.is_trap(next_state):
                 break
 
             next_char = text[pos + 1] if pos + 1 < len(text) else None
@@ -72,3 +71,7 @@ class StreamingMatcher:
             category=last_accept_category,
             trace=trace[:last_accept_trace_len],
         )
+
+    @staticmethod
+    def _state_name(state: object) -> str:
+        return getattr(state, "name", str(state))
