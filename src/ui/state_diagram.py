@@ -74,8 +74,10 @@ def _base_edges() -> list[tuple[str, str, str]]:
         (State.AFTER_INT_SPACE.name, State.WORD.name, "letter"),
         (State.WORD.name, State.WORD.name, "letter"),
         (State.WORD.name, State.AFTER_WORD.name, "space"),
-        (State.AFTER_WORD.name, State.DATE_YEAR.name, "digit (month path)"),
-        (State.DATE_YEAR.name, State.DATE_YEAR.name, "digit"),
+        # Guarded transition: only when previous word is a month and the day length is 1-2 digits
+        (State.AFTER_WORD.name, State.DATE_YEAR.name, "digit (if month && day len 1-2)"),
+        # Year digits: allow up to 4 digits; 5th digit -> TRAP
+        (State.DATE_YEAR.name, State.DATE_YEAR.name, "digit (year, max 4)") ,
     ]
 
 
@@ -170,13 +172,20 @@ def render_state_diagram_html(
 
     for state in State:
         pos_x, pos_y = STATE_POSITIONS[state.name]
+        # add an explanatory tooltip for DATE_YEAR describing the DFA-level validation
+        title_text = f"State: {state.name}"
+        if state.name == State.DATE_YEAR.name:
+            title_text += (
+                "\nAccepts only if: year has exactly 4 digits, year within allowed range,"
+                " and day is within the month's valid range (leap years supported)."
+            )
         network.add_node(
             state.name,
             label=state.name,
             color=_node_color(state.name, current_state, visited_states),
             shape=_node_shape(state.name),
             borderWidth=_node_border_width(state.name, current_state),
-            title=f"State: {state.name}",
+            title=title_text,
             x=pos_x,
             y=pos_y,
             physics=False,
