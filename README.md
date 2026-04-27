@@ -12,15 +12,25 @@ This project implements a deterministic finite automaton (DFA) recognizer for nu
 - `src/ui`: Streamlit simulation and output display.
 - `tests`: unit tests.
 
+
+## Setup (First Time)
+```bash
+python -m venv .venv
+.\.venv\Scripts\activate
+python -m pip install -r requirements.txt
+```
+
 ## Run (CLI)
 ```bash
-.\\.venv\\Scripts\\python.exe -m src.main
+.\.venv\Scripts\activate
+python -m src.main
 ```
+
 
 ## Run (UI)
 ```bash
-.\\.venv\\Scripts\\python.exe -m pip install -r requirements.txt
-.\\.venv\\Scripts\\python.exe -m streamlit run src/ui/app.py
+.\.venv\Scripts\activate
+streamlit run src/ui/app.py
 ```
 
 ## Notes on Constraints
