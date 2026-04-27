@@ -28,34 +28,3 @@ class Category(Enum):
     DATE = "date"
     QUANTITY_WITH_UNIT = "quantity_with_unit"
 
-
-MONTHS = {
-    "january",
-    "february",
-    "march",
-    "april",
-    "may",
-    "june",
-    "july",
-    "august",
-    "september",
-    "october",
-    "november",
-    "december",
-}
-
-
-UNITS_AND_SCALES = {
-    "litre",
-    "litres",
-    "liter",
-    "liters",
-    "cup",
-    "cups",
-    "million",
-    "billion",
-    "thousand",
-    "kg",
-    "g",
-    "ml",
-}
