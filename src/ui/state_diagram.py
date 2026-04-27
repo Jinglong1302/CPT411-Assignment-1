@@ -79,11 +79,12 @@ STATE_POSITIONS: dict[str, tuple[int, int]] = {
     DFAEngine.DATE_YEAR_2: (930, -150),
     DFAEngine.DATE_YEAR_3: (1110, -150),
     DFAEngine.DATE_YEAR_4: (1290, -150),
-    DFAEngine.TRAP: (650, 380),
+    DFAEngine.TRAP: (180, 100),
 }
 
 
 def _node_color(state_name: str, current_state_name: str | None, visited: set[str]) -> str:
+    """Choose node color based on current, visited, and trap-state status."""
     if state_name == current_state_name:
         return "#ffcc80"
     if state_name in visited:
@@ -94,10 +95,12 @@ def _node_color(state_name: str, current_state_name: str | None, visited: set[st
 
 
 def _node_shape(state_name: str) -> str:
+    """Return graph node shape, using a dot for accepting states."""
     return "dot" if state_name in ACCEPTING_STATES else "ellipse"
 
 
 def _node_border_width(state_name: str, current_state_name: str | None) -> int:
+    """Set border thickness to emphasize current and accepting states."""
     if state_name == current_state_name:
         return 4
     if state_name in ACCEPTING_STATES:
@@ -106,10 +109,12 @@ def _node_border_width(state_name: str, current_state_name: str | None) -> int:
 
 
 def _edge_color(pair: tuple[str, str], traversed: set[tuple[str, str]]) -> str:
+    """Color traversed edges differently from non-traversed edges."""
     return "#e53935" if pair in traversed else "#9e9e9e"
 
 
 def _base_edges() -> list[tuple[str, str, str]]:
+    """Return canonical DFA transitions and labels for static diagram rendering."""
     return [
         (DFAEngine.START, DFAEngine.INT_1, "digit"),
         (DFAEngine.INT_1, DFAEngine.INT_2, "digit"),
@@ -157,6 +162,7 @@ def _base_edges() -> list[tuple[str, str, str]]:
 
 
 def _trap_hint_sources() -> list[str]:
+    """Return states that can show generic invalid-input paths to TRAP."""
     # These are representative invalid-input paths that can move to TRAP.
     return [state for state in STATE_NAMES if state != DFAEngine.TRAP]
 
@@ -167,6 +173,7 @@ def render_state_diagram_html(
     width: str = "100%",
     height: str = "540px",
 ) -> str:
+    """Render an interactive HTML graph of DFA states and transitions."""
     try:
         from pyvis.network import Network
     except ImportError:
@@ -205,10 +212,14 @@ def render_state_diagram_html(
             },
             "layout": {"improvedLayout": false},
             "edges": {
+                "font": {
+                    "align": "top",
+                    "size": 10
+                },
                 "smooth": {
                     "enabled": true,
                     "type": "curvedCW",
-                    "roundness": 0.18
+                    "roundness": 0.14
                 }
             }
         }
@@ -277,12 +288,13 @@ def render_state_diagram_html(
         network.add_edge(
             source,
             DFAEngine.TRAP,
-            label="invalid",
+            label="",
+            title="invalid",
             color="#b0bec5",
             width=1,
             arrows="to",
             dashes=True,
-            smooth={"enabled": True, "type": "curvedCCW", "roundness": 0.12},
+            smooth={"enabled": True, "type": "curvedCCW", "roundness": 0.09},
         )
 
     # Show trap transitions encountered in current trace even though they are input-specific.

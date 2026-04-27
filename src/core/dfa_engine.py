@@ -2,6 +2,8 @@ from src.core.states import Category
 
 
 class DFAEngine:
+    """Implements deterministic transitions for numeric-pattern recognition."""
+
     # Core control states.
     START = "START"
     INT_1 = "INT_1"
@@ -36,12 +38,15 @@ class DFAEngine:
     TRAP = "TRAP"
 
     def __init__(self) -> None:
+        """Create a DFA engine instance and initialize to START state."""
         self.reset()
 
     def reset(self) -> None:
+        """Reset the machine back to the START state."""
         self.state = self.START
 
     def step(self, ch: str) -> str:
+        """Consume one character and move to the next deterministic state."""
         if not ch:
             self.state = self.TRAP
             return self.state
@@ -212,9 +217,11 @@ class DFAEngine:
         return self.state
 
     def is_accepting(self, state: str | None = None) -> bool:
+        """Return True when a state corresponds to an accepted category."""
         return self.accepted_category(state) is not None
 
     def accepted_category(self, state: str | None = None) -> Category | None:
+        """Map an accepting state to its semantic category."""
         s = state or self.state
         if s in {self.INT_1, self.INT_2, self.INT_3PLUS}:
             return Category.EXACT_QUANTITY
@@ -229,5 +236,6 @@ class DFAEngine:
         return None
 
     def is_trap(self, state: str | None = None) -> bool:
+        """Return True when a state is the TRAP (dead) state."""
         s = state or self.state
         return s == self.TRAP

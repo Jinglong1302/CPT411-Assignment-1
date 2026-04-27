@@ -10,6 +10,7 @@ from src.ui.state_diagram import render_state_diagram_html
 
 
 def _load_text(uploaded_file) -> str:
+    """Load text from uploaded file or fallback sample file."""
     if uploaded_file is None:
         default_path = Path("sample_input.txt")
         if default_path.exists():
@@ -19,6 +20,7 @@ def _load_text(uploaded_file) -> str:
 
 
 def main() -> None:
+    """Run the Streamlit UI for interactive DFA matching and simulation."""
     st.set_page_config(page_title="L2 Number Data Finder (DFA)", layout="wide")
     st.markdown(
         """

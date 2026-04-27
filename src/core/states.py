@@ -2,6 +2,8 @@ from enum import Enum, auto
 
 
 class State(Enum):
+    """Legacy DFA state enum retained for compatibility and references."""
+
     START = auto()
     INT = auto()
     PERCENT = auto()
@@ -18,6 +20,8 @@ class State(Enum):
 
 
 class Category(Enum):
+    """Semantic categories assigned to accepted patterns."""
+
     EXACT_QUANTITY = "exact_quantity"
     PERCENTAGE = "percentage"
     ORDINAL = "ordinal"

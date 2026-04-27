@@ -4,10 +4,14 @@ from src.core.dfa_engine import DFAEngine
 
 
 class StreamingMatcher:
+    """Scans text left-to-right and returns DFA-recognized pattern matches."""
+
     def __init__(self) -> None:
+        """Initialize the matcher with a fresh DFA engine."""
         self.engine = DFAEngine()
 
     def find_matches(self, text: str) -> list[MatchResult]:
+        """Find all maximal non-overlapping matches in the input text."""
         matches: list[MatchResult] = []
         i = 0
 
@@ -27,6 +31,7 @@ class StreamingMatcher:
         return matches
 
     def _consume_from(self, text: str, start: int) -> MatchResult | None:
+        """Consume characters from a start index and return the best valid match."""
         self.engine.reset()
         trace: list[TransitionStep] = []
         last_accept_end = -1
@@ -74,4 +79,5 @@ class StreamingMatcher:
 
     @staticmethod
     def _state_name(state: object) -> str:
+        """Normalize state objects or strings into printable state names."""
         return getattr(state, "name", str(state))

@@ -5,6 +5,7 @@ from src.app.reporter import highlight_matches, to_table_rows
 
 
 def run_cli(input_path: str = "sample_input.txt") -> None:
+    """Run the command-line matcher and print recognized pattern details."""
     path = Path(input_path)
     text = path.read_text(encoding="utf-8") if path.exists() else ""
 
